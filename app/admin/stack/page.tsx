@@ -42,10 +42,11 @@ export default function StackAdminPage() {
     if (!draft?.name) { alert('Name is required'); return }
     setSaving(true)
     try {
+      const payload = { ...draft, category: (draft.category ?? '').toLowerCase().trim() }
       if (editingId) {
-        await api('PUT', { id: editingId, ...draft })
+        await api('PUT', { id: editingId, ...payload })
       } else {
-        await api('POST', { ...draft, sort_order: items.length })
+        await api('POST', { ...payload, sort_order: items.length })
       }
       setDraft(null)
       setEditingId(null)
@@ -73,7 +74,7 @@ export default function StackAdminPage() {
     setEditingId(null)
   }
 
-  const categories = [...new Set(items.map(i => i.category).filter(Boolean))]
+  const categories = [...new Set(items.map(i => (i.category ?? '').toLowerCase()).filter(Boolean))]
 
   if (loading) return <div className="text-text-muted font-plus-jakarta text-sm">Loading...</div>
 
@@ -137,7 +138,7 @@ export default function StackAdminPage() {
             <div key={cat} className="mb-8">
               <h3 className="font-mono text-xs text-text-muted mb-3 tracking-widest uppercase">{cat}</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {items.filter(i => i.category === cat).map(item => (
+                {items.filter(i => (i.category ?? '').toLowerCase() === cat).map(item => (
                   <div key={item.id} className="border border-border rounded-xl p-4 hover:bg-surface/50 transition-colors group">
                     <div className="flex items-center justify-between">
                       <span className="font-plus-jakarta text-sm text-white">{item.name}</span>

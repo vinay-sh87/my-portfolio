@@ -32,7 +32,7 @@ export function Skills({ stack }: Props) {
 
   for (const item of stack) {
     if (item.category) {
-      const existing = groups.find(g => g.label === item.category);
+      const existing = groups.find(g => g.label.toLowerCase() === item.category?.toLowerCase());
       if (existing) {
         existing.items.push(item.name);
       } else {
