@@ -185,6 +185,20 @@ export function Nav() {
                 {link.label}
               </motion.button>
             ))}
+            {resumeUrl && (
+              <motion.a
+                href={resumeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: (navLinks.length) * 0.08 }}
+                className="flex items-center gap-2 font-syne text-4xl font-bold text-text-muted hover:text-white transition-colors"
+              >
+                <Download size={28} />
+                Resume
+              </motion.a>
+            )}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
