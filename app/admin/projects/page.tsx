@@ -350,9 +350,15 @@ export default function ProjectsAdminPage() {
         </div>
       )}
 
-      {/* Desktop table */}
-        <div className="hidden md:block border border-border rounded-xl overflow-hidden">
-          <table className="w-full">
+      {items.length === 0 ? (
+        <div className="text-center py-20 text-text-muted font-plus-jakarta text-sm">
+          No projects yet. Click "New Project" to add one.
+        </div>
+      ) : (
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block border border-border rounded-xl overflow-hidden">
+            <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-surface">
                 <th className="text-left px-4 py-3 font-mono text-xs text-text-muted">Project</th>
@@ -508,6 +514,8 @@ export default function ProjectsAdminPage() {
             </div>
           ))}
         </div>
+        </>
+      )}
     </div>
   )
 }
