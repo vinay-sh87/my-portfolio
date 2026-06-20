@@ -350,13 +350,8 @@ export default function ProjectsAdminPage() {
         </div>
       )}
 
-      {/* Table */}
-      {items.length === 0 ? (
-        <div className="text-center py-20 text-text-muted font-plus-jakarta text-sm">
-          No projects yet. Click "New Project" to add one.
-        </div>
-      ) : (
-        <div className="border border-border rounded-xl overflow-hidden">
+      {/* Desktop table */}
+        <div className="hidden md:block border border-border rounded-xl overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-surface">
@@ -440,7 +435,79 @@ export default function ProjectsAdminPage() {
             </tbody>
           </table>
         </div>
-      )}
+
+        {/* Mobile cards */}
+        <div className="md:hidden space-y-3">
+          {items.map((item) => (
+            <div key={item.id} className="border border-border rounded-xl p-4 hover:bg-surface/50 transition-colors">
+              <div className="flex items-start gap-3 mb-3">
+                {item.images && item.images.length > 0 && (
+                  <img
+                    src={item.images[0]}
+                    alt={item.title}
+                    className="w-14 h-14 rounded-lg object-cover border border-border flex-shrink-0"
+                  />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-plus-jakarta text-sm font-medium text-white">{item.title}</div>
+                      <div className="font-mono text-xs text-text-muted truncate">{item.slug}</div>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <span className={`font-mono text-xs px-2 py-0.5 rounded-full ${
+                        item.status === 'published'
+                          ? 'bg-green-400/10 text-green-400 border border-green-400/20'
+                          : 'bg-yellow-400/10 text-yellow-400 border border-yellow-400/20'
+                      }`}>
+                        {item.status}
+                      </span>
+                      {item.featured && (
+                        <span className="font-mono text-xs px-2 py-0.5 rounded-full bg-blue-400/10 text-blue-400 border border-blue-400/20">
+                          ★
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-1 mb-3">
+                {(item.tech_stack ?? []).map(tech => (
+                  <span key={tech} className="font-mono text-xs border border-border px-2 py-0.5 rounded-full text-text-muted">
+                    {tech}
+                  </span>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  {item.live_url && (
+                    <a href={item.live_url} target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-white transition-colors p-1.5">
+                      <ExternalLink size={14} />
+                    </a>
+                  )}
+                  {item.github_url && (
+                    <a href={item.github_url} target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-white transition-colors p-1.5">
+                      <Github size={14} />
+                    </a>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => toggleFeatured(item)} className="text-text-muted hover:text-yellow-400 transition-colors p-1.5">
+                    {item.featured ? <Star size={14} className="text-yellow-400" /> : <StarOff size={14} />}
+                  </button>
+                  <button onClick={() => openEdit(item)} className="text-text-muted hover:text-white transition-colors p-1.5">
+                    <Pencil size={14} />
+                  </button>
+                  <button onClick={() => deleteItem(item.id)} className="text-text-muted hover:text-red-400 transition-colors p-1.5">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
     </div>
   )
 }
