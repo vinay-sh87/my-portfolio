@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { LayoutDashboard, FolderKanban, Briefcase, Layers, LogOut, ChevronRight, Settings } from 'lucide-react'
+import { LayoutDashboard, FolderKanban, Briefcase, Layers, LogOut, ChevronRight, Settings, Menu, X } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
 
 const navItems = [
   { href: '/admin/projects', label: 'Projects', icon: FolderKanban },
@@ -16,6 +17,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname()
   const [authenticated, setAuthenticated] = useState(false)
   const [checking, setChecking] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     const stored = sessionStorage.getItem('admin_auth')
@@ -24,6 +26,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
     setChecking(false)
   }, [])
+
+  // Close sidebar on route change
+  useEffect(() => {
+    setSidebarOpen(false)
+  }, [pathname])
 
   const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -71,53 +78,98 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     )
   }
 
+  const SidebarContent = () => (
+    <>
+      <div className="p-6 border-b border-border flex items-center justify-between">
+        <Link href="/admin" className="font-syne font-bold text-lg text-white flex items-center gap-2">
+          <LayoutDashboard size={18} />
+          Admin Panel
+        </Link>
+        <button
+          onClick={() => setSidebarOpen(false)}
+          className="md:hidden text-text-muted hover:text-white"
+        >
+          <X size={20} />
+        </button>
+      </div>
+      <nav className="flex-1 p-4 space-y-1">
+        {navItems.map(({ href, label, icon: Icon }) => {
+          const active = pathname.startsWith(href)
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-plus-jakarta text-sm transition-all ${
+                active
+                  ? 'bg-white text-bg font-medium'
+                  : 'text-text-muted hover:text-white hover:bg-surface'
+              }`}
+            >
+              <Icon size={16} />
+              {label}
+              {active && <ChevronRight size={14} className="ml-auto" />}
+            </Link>
+          )
+        })}
+      </nav>
+      <div className="p-4 border-t border-border">
+        <div className="space-y-1">
+          <Link
+            href="/"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg font-plus-jakarta text-sm text-text-muted hover:text-white hover:bg-surface transition-all"
+          >
+            View Site →
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-plus-jakarta text-sm text-text-muted hover:text-red-400 hover:bg-surface transition-all"
+          >
+            <LogOut size={16} />
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </>
+  )
+
   return (
     <div className="min-h-screen bg-bg flex">
-      {/* Sidebar */}
-      <aside className="w-64 border-r border-border flex flex-col">
-        <div className="p-6 border-b border-border">
-          <Link href="/admin" className="font-syne font-bold text-lg text-white flex items-center gap-2">
-            <LayoutDashboard size={18} />
-            Admin Panel
-          </Link>
-        </div>
-        <nav className="flex-1 p-4 space-y-1">
-          {navItems.map(({ href, label, icon: Icon }) => {
-            const active = pathname.startsWith(href)
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-plus-jakarta text-sm transition-all ${
-                  active
-                    ? 'bg-white text-bg font-medium'
-                    : 'text-text-muted hover:text-white hover:bg-surface'
-                }`}
-              >
-                <Icon size={16} />
-                {label}
-                {active && <ChevronRight size={14} className="ml-auto" />}
-              </Link>
-            )
-          })}
-        </nav>
-        <div className="p-4 border-t border-border">
-          <div className="space-y-1">
-            <Link
-              href="/"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg font-plus-jakarta text-sm text-text-muted hover:text-white hover:bg-surface transition-all"
+      {/* Mobile menu button */}
+      <button
+        onClick={() => setSidebarOpen(true)}
+        className="fixed top-4 left-4 z-40 md:hidden w-10 h-10 bg-surface border border-border rounded-lg flex items-center justify-center text-text-muted hover:text-white transition-colors"
+      >
+        <Menu size={18} />
+      </button>
+
+      {/* Mobile sidebar overlay */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/60 z-40 md:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: -280 }}
+              animate={{ x: 0 }}
+              exit={{ x: -280 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed left-0 top-0 bottom-0 z-50 w-64 bg-bg border-r border-border flex flex-col md:hidden"
             >
-              View Site →
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-plus-jakarta text-sm text-text-muted hover:text-red-400 hover:bg-surface transition-all"
-            >
-              <LogOut size={16} />
-              Sign Out
-            </button>
-          </div>
-        </div>
+              <SidebarContent />
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex w-64 border-r border-border flex-col flex-shrink-0">
+        <SidebarContent />
       </aside>
 
       {/* Main content */}
