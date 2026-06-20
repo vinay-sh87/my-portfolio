@@ -18,7 +18,7 @@ export function Experience({ experiences }: Props) {
   const [cardSide, setCardSide] = useState<'bottom' | 'top'>('bottom');
   const [isMobile, setIsMobile] = useState(false);
 
-  const sorted = [...experiences].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const sorted = [...experiences].sort((a, b) => (b.sort_order ?? 0) - (a.sort_order ?? 0));
   const upperLane = 160;
   const lowerLane = 340;
   const midY = (upperLane + lowerLane) / 2;
@@ -59,8 +59,8 @@ export function Experience({ experiences }: Props) {
   function buildPath(): string {
     if (sorted.length === 0) return 'M 0 0';
     const spacing = svgWidth / (sorted.length + 1);
-    const startY = sorted.length > 0 && 0 % 2 === 0 ? lowerLane : upperLane;
-    let d = `M 0 ${startY}`;
+    // Newest first, start from lowerLane (left side)
+    let d = `M 0 ${lowerLane}`;
 
     for (let i = 0; i < sorted.length; i++) {
       const x = spacing * (i + 1);
@@ -68,7 +68,10 @@ export function Experience({ experiences }: Props) {
       if (i === 0) {
         d += ` L ${x} ${y}`;
       } else {
-        d += ` C ${x - spacing * 0.4} ${d.endsWith(`${lowerLane}`) ? lowerLane : upperLane}, ${x - spacing * 0.1} ${y}, ${x} ${y}`;
+        const prevY = (i - 1) % 2 === 0 ? lowerLane : upperLane;
+        const cp1y = prevY;
+        const cp2y = y;
+        d += ` C ${x - spacing * 0.4} ${cp1y}, ${x - spacing * 0.1} ${cp2y}, ${x} ${y}`;
       }
     }
     return d;
@@ -143,7 +146,7 @@ export function Experience({ experiences }: Props) {
             animate={isInView ? { strokeDashoffset: 0 } : { strokeDashoffset: pathLength }}
             transition={{ duration: 1.5, ease: [0.19, 1, 0.22, 1] }} />
           <motion.circle cx={svgWidth + 20}
-            cy={sorted.length % 2 === 0 ? upperLane : lowerLane} r="4"
+            cy={sorted.length % 2 === 0 ? lowerLane : upperLane} r="4"
             fill="var(--border)" initial={{ opacity: 0 }}
             animate={isInView ? { opacity: 1 } : {}}
             transition={{ delay: 1.5 + sorted.length * 0.15 }} />
@@ -163,11 +166,11 @@ export function Experience({ experiences }: Props) {
                   className="font-mono text-xs fill-current text-text-muted pointer-events-none">
                   {exp.num}
                 </motion.text>
-                {exp.is_current && (
+                {exp.is_current || i === 0 ? (
                   <motion.circle r="28" fill="none" stroke="#10B981" strokeWidth="1"
                     animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
                     transition={{ duration: 2, repeat: Infinity }} />
-                )}
+                ) : null}
               </g>
             );
           })}
