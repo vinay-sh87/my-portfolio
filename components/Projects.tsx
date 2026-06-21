@@ -81,16 +81,37 @@ export function Projects({ allProjects = [], isHome = false, hideHeader = false 
 
         {!hideHeader && (
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 md:mb-24">
-            <motion.h2
-              initial={{ opacity: 0, y: 30 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={isInView ? { opacity: 1, x: 0 } : {}}
               transition={{ duration: 0.8, ease: [0.19, 1, 0.22, 1], delay: 0.1 }}
-              className="font-syne font-bold text-section leading-[1.05] tracking-tight"
             >
-              {isHome ? 'Selected' : 'All'}
-              <br />
-              <span className="text-text-secondary">Projects</span>
-            </motion.h2>
+              <motion.h2
+                initial={{ opacity: 0, y: 30 }}
+                animate={isInView ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.8, ease: [0.19, 1, 0.22, 1], delay: 0.1 }}
+                className="font-syne font-bold text-section leading-[1.05] tracking-tight"
+              >
+                {isHome ? 'Selected' : 'All'}
+                <br />
+                <span className="text-text-secondary">Projects</span>
+              </motion.h2>
+              {isHome && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={isInView ? { opacity: 1, y: 0 } : {}}
+                  transition={{ duration: 0.5, delay: 0.25 }}
+                  className="mt-4"
+                >
+                  <Link
+                    href="/projects"
+                    className="font-mono text-sm text-text-muted hover:text-white transition-colors inline-flex items-center gap-2"
+                  >
+                    View all projects →
+                  </Link>
+                </motion.div>
+              )}
+            </motion.div>
 
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -168,22 +189,7 @@ export function Projects({ allProjects = [], isHome = false, hideHeader = false 
           </div>
         )}
 
-        {isHome && projects.length > 3 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={isInView ? { opacity: 1 } : {}}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="mt-12 text-center"
-          >
-            <Link
-              href="/projects"
-              className="inline-flex items-center gap-2 font-mono text-sm text-text-muted hover:text-white transition-colors"
-            >
-              View all {projects.length} projects →
-            </Link>
-          </motion.div>
-        )}
-      </div>
+              </div>
     </section>
   );
 }
