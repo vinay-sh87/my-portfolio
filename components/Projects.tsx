@@ -100,7 +100,7 @@ export function Projects({ allProjects = [], isHome = false, hideHeader = false 
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={isInView ? { opacity: 1, y: 0 } : {}}
-                  transition={{ duration: 0.5, delay: 0.25 }}
+                  transition={{ duration: 0.5, ease: [0.19, 1, 0.22, 1], delay: 0.3 }}
                   className="mt-4"
                 >
                   <Link
@@ -113,15 +113,18 @@ export function Projects({ allProjects = [], isHome = false, hideHeader = false 
               )}
             </motion.div>
 
-            <motion.div
+            <motion.a
+              href="https://github.com/vinay-sh87"
+              target="_blank"
+              rel="noopener noreferrer"
               initial={{ opacity: 0, x: 20 }}
               animate={isInView ? { opacity: 1, x: 0 } : {}}
               transition={{ duration: 0.8, ease: [0.19, 1, 0.22, 1], delay: 0.2 }}
               className="flex items-center gap-2"
             >
               <Github size={16} className="text-text-muted" />
-              <span className="font-mono text-sm text-text-muted">github.com/vinay-sh87</span>
-            </motion.div>
+              <span className="font-mono text-sm text-text-muted hover:text-white transition-colors">github.com/vinay-sh87</span>
+            </motion.a>
           </div>
         )}
 
