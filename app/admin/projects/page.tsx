@@ -1,10 +1,149 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Project } from '@/lib/supabase/types'
-import { Plus, Pencil, Trash2, Star, StarOff, ExternalLink, Github, X, Upload, ImagePlus } from 'lucide-react'
+import { Plus, Pencil, Trash2, Star, StarOff, ExternalLink, Github, X, Upload, ImagePlus, GripVertical } from 'lucide-react'
+import { DndContext, DragEndEvent, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 type ImageEntry = { url: string; path: string }
+
+// ── Sortable row for desktop table ──────────────────────────────────────────
+function SortableTableRow({ item, onEdit, onDelete, onToggleFeatured }: {
+  item: Project
+  onEdit: (item: Project) => void
+  onDelete: (id: string) => void
+  onToggleFeatured: (item: Project) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  }
+  return (
+    <tr ref={setNodeRef} style={style} className="border-b border-border last:border-0 hover:bg-surface/50 transition-colors">
+      <td className="px-2 py-4">
+        <button type="button" className="cursor-grab text-text-muted hover:text-white touch-none p-1" {...attributes} {...listeners}>
+          <GripVertical size={16} />
+        </button>
+      </td>
+      <td className="px-4 py-4">
+        <div className="flex items-center gap-4">
+          {item.images && item.images.length > 0 && (
+            <img src={item.images[0]} alt={item.title} className="w-12 h-12 rounded-lg object-cover border border-border flex-shrink-0" />
+          )}
+          <div>
+            <div className="font-plus-jakarta text-sm text-white">{item.title}</div>
+            <div className="font-mono text-xs text-text-muted">{item.slug}</div>
+          </div>
+        </div>
+      </td>
+      <td className="px-4 py-4">
+        <div className="flex flex-wrap gap-1">
+          <span className={`font-mono text-xs px-2 py-1 rounded-full ${item.status === 'published' ? 'bg-green-400/10 text-green-400 border border-green-400/20' : 'bg-yellow-400/10 text-yellow-400 border border-yellow-400/20'}`}>
+            {item.status}
+          </span>
+          {item.featured && (
+            <span className="font-mono text-xs px-2 py-1 rounded-full bg-blue-400/10 text-blue-400 border border-blue-400/20">★ featured</span>
+          )}
+        </div>
+      </td>
+      <td className="px-4 py-4">
+        <div className="flex flex-wrap gap-1">
+          {(item.tech_stack ?? []).slice(0, 3).map(tech => (
+            <span key={tech} className="font-mono text-xs border border-border px-2 py-0.5 rounded-full text-text-muted">{tech}</span>
+          ))}
+          {(item.tech_stack ?? []).length > 3 && (
+            <span className="font-mono text-xs text-text-muted">+{(item.tech_stack ?? []).length - 3}</span>
+          )}
+        </div>
+      </td>
+      <td className="px-4 py-4">
+        <div className="flex items-center justify-end gap-2">
+          {item.live_url && (
+            <a href={item.live_url} target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-white transition-colors"><ExternalLink size={14} /></a>
+          )}
+          {item.github_url && (
+            <a href={item.github_url} target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-white transition-colors"><Github size={14} /></a>
+          )}
+          <button onClick={() => onToggleFeatured(item)} className="text-text-muted hover:text-yellow-400 transition-colors">
+            {item.featured ? <Star size={14} className="text-yellow-400" /> : <StarOff size={14} />}
+          </button>
+          <button onClick={() => onEdit(item)} className="text-text-muted hover:text-white transition-colors"><Pencil size={14} /></button>
+          <button onClick={() => onDelete(item.id)} className="text-text-muted hover:text-red-400 transition-colors"><Trash2 size={14} /></button>
+        </div>
+      </td>
+    </tr>
+  )
+}
+
+// ── Sortable card for mobile ─────────────────────────────────────────────────
+function SortableMobileCard({ item, onEdit, onDelete, onToggleFeatured }: {
+  item: Project
+  onEdit: (item: Project) => void
+  onDelete: (id: string) => void
+  onToggleFeatured: (item: Project) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 50 : undefined,
+  }
+  return (
+    <div ref={setNodeRef} style={style} className="border border-border rounded-xl p-4 hover:bg-surface/50 transition-colors">
+      <div className="flex items-start gap-2 mb-3">
+        <button type="button" className="cursor-grab text-text-muted hover:text-white touch-none p-1 mt-1" {...attributes} {...listeners}>
+          <GripVertical size={16} />
+        </button>
+        {item.images && item.images.length > 0 && (
+          <img src={item.images[0]} alt={item.title} className="w-14 h-14 rounded-lg object-cover border border-border flex-shrink-0" />
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="font-plus-jakarta text-sm font-medium text-white">{item.title}</div>
+              <div className="font-mono text-xs text-text-muted truncate">{item.slug}</div>
+            </div>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className={`font-mono text-xs px-2 py-0.5 rounded-full ${item.status === 'published' ? 'bg-green-400/10 text-green-400 border border-green-400/20' : 'bg-yellow-400/10 text-yellow-400 border border-yellow-400/20'}`}>
+                {item.status}
+              </span>
+              {item.featured && (
+                <span className="font-mono text-xs px-2 py-0.5 rounded-full bg-blue-400/10 text-blue-400 border border-blue-400/20">★</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-1 mb-3">
+        {(item.tech_stack ?? []).map(tech => (
+          <span key={tech} className="font-mono text-xs border border-border px-2 py-0.5 rounded-full text-text-muted">{tech}</span>
+        ))}
+      </div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1">
+          {item.live_url && (
+            <a href={item.live_url} target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-white transition-colors p-1.5"><ExternalLink size={14} /></a>
+          )}
+          {item.github_url && (
+            <a href={item.github_url} target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-white transition-colors p-1.5"><Github size={14} /></a>
+          )}
+        </div>
+        <div className="flex items-center gap-1">
+          <button onClick={() => onToggleFeatured(item)} className="text-text-muted hover:text-yellow-400 transition-colors p-1.5">
+            {item.featured ? <Star size={14} className="text-yellow-400" /> : <StarOff size={14} />}
+          </button>
+          <button onClick={() => onEdit(item)} className="text-text-muted hover:text-white transition-colors p-1.5"><Pencil size={14} /></button>
+          <button onClick={() => onDelete(item.id)} className="text-text-muted hover:text-red-400 transition-colors p-1.5"><Trash2 size={14} /></button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function ProjectsAdminPage() {
   const [items, setItems] = useState<Project[]>([])
@@ -14,6 +153,12 @@ export default function ProjectsAdminPage() {
   const [techStackInput, setTechStackInput] = useState('')
   const [saving, setSaving] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const itemsSnapshotRef = useRef<Project[]>([])
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor)
+  )
 
   const fetchItems = useCallback(async () => {
     try {
@@ -151,6 +296,37 @@ export default function ProjectsAdminPage() {
     setDraft({ title: '', slug: '', short_description: '', featured: false, status: 'draft', images: [] })
     setTechStackInput('')
     setEditingId(null)
+  }
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const draggingId = active.id as string
+    const overId = over.id as string
+    const allIds = items.map(p => p.id)
+    const oldIndex = allIds.indexOf(draggingId)
+    const newIndex = allIds.indexOf(overId)
+    if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return
+
+    const newItems = arrayMove(items, oldIndex, newIndex)
+    setItems(newItems)
+
+    try {
+      await fetch('/api/admin/projects/reorder', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-password': sessionStorage.getItem('admin_auth') === 'true'
+            ? (process.env.NEXT_PUBLIC_ADMIN_PASSWORD ?? '') : '',
+        },
+        body: JSON.stringify({ items: newItems.map((p, i) => ({ id: p.id, sort_order: i })) }),
+      })
+    } catch (err) {
+      console.error('Failed to reorder:', err)
+    } finally {
+      await fetchItems()
+    }
   }
 
   if (loading) return <div className="text-text-muted font-plus-jakarta text-sm">Loading...</div>
@@ -355,12 +531,15 @@ export default function ProjectsAdminPage() {
           No projects yet. Click "New Project" to add one.
         </div>
       ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={() => { itemsSnapshotRef.current = items }} onDragEnd={handleDragEnd}>
+        <SortableContext items={items.map(p => p.id)} strategy={verticalListSortingStrategy}>
         <>
           {/* Desktop table */}
           <div className="hidden md:block border border-border rounded-xl overflow-hidden">
             <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-surface">
+                <th className="w-10 px-4 py-3"></th>
                 <th className="text-left px-4 py-3 font-mono text-xs text-text-muted">Project</th>
                 <th className="text-left px-4 py-3 font-mono text-xs text-text-muted">Status</th>
                 <th className="text-left px-4 py-3 font-mono text-xs text-text-muted">Stack</th>
@@ -369,152 +548,33 @@ export default function ProjectsAdminPage() {
             </thead>
             <tbody>
               {items.map((item) => (
-                <tr key={item.id} className="border-b border-border last:border-0 hover:bg-surface/50 transition-colors">
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-4">
-                      {item.images && item.images.length > 0 && (
-                        <img
-                          src={item.images[0]}
-                          alt={item.title}
-                          className="w-12 h-12 rounded-lg object-cover border border-border flex-shrink-0"
-                        />
-                      )}
-                      <div>
-                        <div className="font-plus-jakarta text-sm text-white">{item.title}</div>
-                        <div className="font-mono text-xs text-text-muted">{item.slug}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="flex flex-wrap gap-1">
-                      <span className={`font-mono text-xs px-2 py-1 rounded-full ${
-                        item.status === 'published'
-                          ? 'bg-green-400/10 text-green-400 border border-green-400/20'
-                          : 'bg-yellow-400/10 text-yellow-400 border border-yellow-400/20'
-                      }`}>
-                        {item.status}
-                      </span>
-                      {item.featured && (
-                        <span className="font-mono text-xs px-2 py-1 rounded-full bg-blue-400/10 text-blue-400 border border-blue-400/20">
-                          ★ featured
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="flex flex-wrap gap-1">
-                      {(item.tech_stack ?? []).slice(0, 3).map(tech => (
-                        <span key={tech} className="font-mono text-xs border border-border px-2 py-0.5 rounded-full text-text-muted">
-                          {tech}
-                        </span>
-                      ))}
-                      {(item.tech_stack ?? []).length > 3 && (
-                        <span className="font-mono text-xs text-text-muted">+{(item.tech_stack ?? []).length - 3}</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      {item.live_url && (
-                        <a href={item.live_url} target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-white transition-colors">
-                          <ExternalLink size={14} />
-                        </a>
-                      )}
-                      {item.github_url && (
-                        <a href={item.github_url} target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-white transition-colors">
-                          <Github size={14} />
-                        </a>
-                      )}
-                      <button onClick={() => toggleFeatured(item)} className="text-text-muted hover:text-yellow-400 transition-colors">
-                        {item.featured ? <Star size={14} className="text-yellow-400" /> : <StarOff size={14} />}
-                      </button>
-                      <button onClick={() => openEdit(item)} className="text-text-muted hover:text-white transition-colors">
-                        <Pencil size={14} />
-                      </button>
-                      <button onClick={() => deleteItem(item.id)} className="text-text-muted hover:text-red-400 transition-colors">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                <SortableTableRow
+                  key={item.id}
+                  item={item}
+                  onEdit={openEdit}
+                  onDelete={deleteItem}
+                  onToggleFeatured={toggleFeatured}
+                />
               ))}
             </tbody>
           </table>
         </div>
 
         {/* Mobile cards */}
-        <div className="md:hidden space-y-3">
+        <div className="md:hidden space-y-3 mt-4">
           {items.map((item) => (
-            <div key={item.id} className="border border-border rounded-xl p-4 hover:bg-surface/50 transition-colors">
-              <div className="flex items-start gap-3 mb-3">
-                {item.images && item.images.length > 0 && (
-                  <img
-                    src={item.images[0]}
-                    alt={item.title}
-                    className="w-14 h-14 rounded-lg object-cover border border-border flex-shrink-0"
-                  />
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="font-plus-jakarta text-sm font-medium text-white">{item.title}</div>
-                      <div className="font-mono text-xs text-text-muted truncate">{item.slug}</div>
-                    </div>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <span className={`font-mono text-xs px-2 py-0.5 rounded-full ${
-                        item.status === 'published'
-                          ? 'bg-green-400/10 text-green-400 border border-green-400/20'
-                          : 'bg-yellow-400/10 text-yellow-400 border border-yellow-400/20'
-                      }`}>
-                        {item.status}
-                      </span>
-                      {item.featured && (
-                        <span className="font-mono text-xs px-2 py-0.5 rounded-full bg-blue-400/10 text-blue-400 border border-blue-400/20">
-                          ★
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-1 mb-3">
-                {(item.tech_stack ?? []).map(tech => (
-                  <span key={tech} className="font-mono text-xs border border-border px-2 py-0.5 rounded-full text-text-muted">
-                    {tech}
-                  </span>
-                ))}
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1">
-                  {item.live_url && (
-                    <a href={item.live_url} target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-white transition-colors p-1.5">
-                      <ExternalLink size={14} />
-                    </a>
-                  )}
-                  {item.github_url && (
-                    <a href={item.github_url} target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-white transition-colors p-1.5">
-                      <Github size={14} />
-                    </a>
-                  )}
-                </div>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => toggleFeatured(item)} className="text-text-muted hover:text-yellow-400 transition-colors p-1.5">
-                    {item.featured ? <Star size={14} className="text-yellow-400" /> : <StarOff size={14} />}
-                  </button>
-                  <button onClick={() => openEdit(item)} className="text-text-muted hover:text-white transition-colors p-1.5">
-                    <Pencil size={14} />
-                  </button>
-                  <button onClick={() => deleteItem(item.id)} className="text-text-muted hover:text-red-400 transition-colors p-1.5">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            </div>
+            <SortableMobileCard
+              key={item.id}
+              item={item}
+              onEdit={openEdit}
+              onDelete={deleteItem}
+              onToggleFeatured={toggleFeatured}
+            />
           ))}
         </div>
         </>
+        </SortableContext>
+        </DndContext>
       )}
     </div>
   )
